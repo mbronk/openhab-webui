@@ -107,12 +107,12 @@
           </f7-col>
         </f7-block>
 
-        <f7-block class="block-narrow" v-if="ready && !error && thingType && thingType.UID.indexOf('zwave') === 0">
+        <f7-block class="block-narrow" v-if="ready && !error && thingType && (thingType.UID.indexOf('zwave') === 0 || configActions.length > 0)">
           <f7-col>
-            <f7-block-title>Z-Wave</f7-block-title>
+            <f7-block-title>Actions</f7-block-title>
             <f7-list>
-              <f7-list-button color="blue" title="View Network Map" @click="openZWaveNetworkPopup" />
-              <f7-list-button color="blue" v-for="action in zwaveActions" :key="action.name" :title="action.label" @click="doZWaveAction(action)" />
+              <f7-list-button color="blue" title="View Network Map" @click="openZWaveNetworkPopup" v-if="thingType.UID.indexOf('zwave') === 0" />
+              <f7-list-button :color="action.verify? 'yellow' : 'blue'" v-for="action in configActions" :key="action.name" :title="action.label" @click="doConfigAction(action)" :tooltip="action.description" />
             </f7-list>
           </f7-col>
           <z-wave-network-popup :opened="zwaveNetworkPopupOpened" @closed="zwaveNetworkPopupOpened = false" />
@@ -276,7 +276,7 @@ export default {
       channelTypes: {},
       configDescriptions: {},
       configStatusInfo: [],
-      zwaveActions: {},
+      configActions: [],
       thingEnabled: true,
       codePopupOpened: false,
       zwaveNetworkPopupOpened: false,
@@ -371,10 +371,12 @@ export default {
             this.configDirty = false
             this.thingDirty = false
 
-            // special treatment for Z-Wave actions
-            if (this.thingType.UID.indexOf('zwave') === 0) {
-              this.zwaveActions = this.configDescriptions.parameters.filter((p) => p.groupName === 'actions')
-              this.configDescriptions.parameters = this.configDescriptions.parameters.filter((p) => p.groupName !== 'actions')
+            // special treatment for actions (heuristic match by group name/label)
+            if (this.configDescriptions.parameterGroups.filter((pg) => pg.name === 'actions').every((pg) => pg.label === 'Actions' && pg.description === 'Actions')) {
+              this.configActions = this.configDescriptions.parameters.filter((p) => p.groupName === 'actions' && p.type === 'BOOLEAN')
+            }
+            if (this.configActions.length > 0) {
+              this.configDescriptions.parameters = this.configDescriptions.parameters.filter((p) => this.configActions.every((action) => action.name !== p.name))
             }
 
             if (!this.eventSource) this.startEventSource()
@@ -443,12 +445,12 @@ export default {
         }).open()
       })
     },
-    doZWaveAction (action) {
+    doConfigAction (action) {
       let thing = this.thing
       let save = this.save
       if (action.type !== 'BOOLEAN') return
       this.$f7.dialog.confirm(
-        `${action.label}?`,
+        `${action.description ?? action.label}?${action.verify ? '<p><small><strong class="text-color-yellow">WARNING:</strong>&nbsp;This action may be dangerous!</small></p>' : ''}`,
         this.thing.label,
         () => {
           thing.configuration[action.name] = true
