@@ -112,7 +112,7 @@
             <f7-block-title>Actions</f7-block-title>
             <f7-list>
               <f7-list-button color="blue" title="View Network Map" @click="openZWaveNetworkPopup" v-if="thingType.UID.indexOf('zwave') === 0" />
-              <f7-list-button :color="action.verify? 'yellow' : 'blue'" v-for="action in configActions" :key="action.name" :title="action.label" @click="doConfigAction(action)" :tooltip="action.description" />
+              <f7-list-button :color="action.verify ? 'yellow' : 'blue'" v-for="action in configActions" :key="action.name" :title="action.label" @click="doConfigAction(action)" :tooltip="action.description" />
             </f7-list>
           </f7-col>
           <z-wave-network-popup :opened="zwaveNetworkPopupOpened" @closed="zwaveNetworkPopupOpened = false" />
